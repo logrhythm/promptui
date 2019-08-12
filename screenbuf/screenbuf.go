@@ -4,14 +4,22 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"regexp"
+	"strconv"
+
+	terminal "github.com/wayneashleyberry/terminal-dimensions"
 )
 
-const esc = "\033["
+const (
+	esc  = "\033["
+	ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+)
 
 var (
 	clearLine = []byte(esc + "2K\r")
 	moveUp    = []byte(esc + "1A")
 	moveDown  = []byte(esc + "1B")
+	re        = regexp.MustCompile(ansi)
 )
 
 // ScreenBuf is a convenient way to write to terminal screens. It creates,
@@ -68,6 +76,24 @@ func (s *ScreenBuf) Write(b []byte) (int, error) {
 	if s.reset {
 		if err := s.Clear(); err != nil {
 			return 0, err
+		}
+	}
+
+	x, err := terminal.Width()
+	if err != nil {
+		return 0, err
+	}
+	if x > 0 {
+		stripped := re.ReplaceAllString(string(b), "")
+		strippedInt, err := strconv.Atoi(stripped)
+		if err != nil {
+			return 0, err
+		}
+
+		numClearLines := strippedInt / int(x)
+		for i := 0; i < numClearLines; i++ {
+			s.Write(moveUp)
+			s.Write(clearLine)
 		}
 	}
 
