@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
-	"strconv"
+	"unicode/utf8"
 
 	terminal "github.com/wayneashleyberry/terminal-dimensions"
 )
@@ -26,12 +26,13 @@ var (
 // clears and, moves up or down lines as needed to write the output to the
 // terminal using ANSI escape codes.
 type ScreenBuf struct {
-	w      io.Writer
-	buf    *bytes.Buffer
-	reset  bool
-	flush  bool
-	cursor int
-	height int
+	w          io.Writer
+	buf        *bytes.Buffer
+	reset      bool
+	flush      bool
+	cursor     int
+	height     int
+	prevBufLen int
 }
 
 // New creates and initializes a new ScreenBuf.
@@ -85,17 +86,23 @@ func (s *ScreenBuf) Write(b []byte) (int, error) {
 	}
 	if x > 0 {
 		stripped := re.ReplaceAllString(string(b), "")
-		strippedInt, err := strconv.Atoi(stripped)
-		if err != nil {
-			return 0, err
+		strippedBufLen := utf8.RuneCountInString(stripped) - 2
+		numClearLines := strippedBufLen / int(x)
+
+		for i := 0; i < numClearLines; i++ {
+			s.buf.Write(moveUp)
+			s.buf.Write(clearLine)
 		}
 
-		numClearLines := strippedInt / int(x)
-		for i := 0; i < numClearLines; i++ {
-			s.Write(moveUp)
-			s.Write(clearLine)
+		cond1 := (strippedBufLen+1)%int(x) == 0
+		cond2 := (strippedBufLen+2)%int(x) == 0
+		if s.prevBufLen > len(b) && (cond1 || cond2) {
+			// if client is deleting characters
+			s.buf.Write(moveUp)
+			s.buf.Write(clearLine)
 		}
 	}
+	s.prevBufLen = len(b)
 
 	switch {
 	case s.cursor == s.height:

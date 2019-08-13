@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/chzyer/readline"
 	"github.com/manifoldco/promptui/screenbuf"
@@ -228,12 +229,17 @@ func (p *Prompt) Run() (string, error) {
 
 	if p.IsConfirm {
 		lowerDefault := strings.ToLower(p.Default)
-		if strings.ToLower(cur.Get()) != "y" && (lowerDefault != "y" || (lowerDefault == "y" && cur.Get() != "")) {
+		if strings.ToLower(cur.Get()) != "y" &&
+			strings.ToLower(cur.Get()) != "n" &&
+			(lowerDefault != "y" && lowerDefault != "n" || (lowerDefault == "y" && cur.Get() != "")) {
+
 			prompt = render(p.Templates.invalid, p.Label)
 			err = ErrAbort
 		}
 	}
 
+	// Slight delay so prompt rendering does not conflict with listener
+	time.Sleep(50 * time.Millisecond)
 	sb.Reset()
 	sb.Write(prompt)
 	sb.Flush()
