@@ -154,7 +154,7 @@ Description: {{.Description}}`,
 
 func TestClearScreen(t *testing.T) {
 	var buf bytes.Buffer
-	sb := screenbuf.New(&buf)
+	sb := screenbuf.New(&buf, false)
 
 	sb.WriteString("test")
 	clearScreen(sb)

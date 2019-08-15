@@ -33,11 +33,12 @@ type ScreenBuf struct {
 	cursor     int
 	height     int
 	prevBufLen int
+	isSelect   bool
 }
 
 // New creates and initializes a new ScreenBuf.
-func New(w io.Writer) *ScreenBuf {
-	return &ScreenBuf{buf: &bytes.Buffer{}, w: w}
+func New(w io.Writer, isSelect bool) *ScreenBuf {
+	return &ScreenBuf{buf: &bytes.Buffer{}, w: w, isSelect: isSelect}
 }
 
 // Reset truncates the underlining buffer and marks all its previous lines to be
@@ -84,7 +85,7 @@ func (s *ScreenBuf) Write(b []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if x > 0 {
+	if x > 0 && !s.isSelect {
 		stripped := re.ReplaceAllString(string(b), "")
 		strippedBufLen := utf8.RuneCountInString(stripped) - 2
 		numClearLines := strippedBufLen / int(x)
