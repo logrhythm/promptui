@@ -231,7 +231,11 @@ func (p *Prompt) Run() (string, error) {
 		lowerDefault := strings.ToLower(p.Default)
 		if strings.ToLower(cur.Get()) != "y" &&
 			(lowerDefault != "y" || (lowerDefault == "y" && cur.Get() != "")) {
-			prompt = render(p.Templates.invalid, p.Label)
+
+			if strings.ToLower(cur.Get()) != "n" &&
+				(lowerDefault != "n" || (lowerDefault == "n" && cur.Get() != "")) {
+				prompt = render(p.Templates.invalid, p.Label)
+			}
 			err = ErrAbort
 		}
 	}
