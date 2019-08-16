@@ -3,6 +3,7 @@ package promptui
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"text/template"
 	"time"
@@ -228,12 +229,21 @@ func (p *Prompt) Run() (string, error) {
 	prompt = append(prompt, []byte(echo)...)
 
 	if p.IsConfirm {
-		lowerDefault := strings.ToLower(p.Default)
-		if strings.ToLower(cur.Get()) != "y" &&
-			(lowerDefault != "y" || (lowerDefault == "y" && cur.Get() != "")) {
+		reg, regerr := regexp.Compile("[^A-Za-z0-9]+")
+		if regerr != nil {
+			return "", regerr
+		}
+		echoStripped := reg.ReplaceAllString(echo, "")
 
-			if strings.ToLower(cur.Get()) != "n" &&
-				(lowerDefault != "n" || (lowerDefault == "n" && cur.Get() != "")) {
+		lowerDefault := strings.ToLower(p.Default)
+		lowerInput := strings.ToLower(string(echoStripped))
+		isNotY := strings.ToLower(cur.Get()) != "y" && (lowerDefault != "y" || (lowerDefault == "y" && cur.Get() != ""))
+		isNotYes := lowerInput != "yes" && (lowerDefault != "yes" || (lowerDefault == "yes" && lowerInput != ""))
+
+		if isNotY && isNotYes {
+			isNotN := strings.ToLower(cur.Get()) != "n" && (lowerDefault != "n" || (lowerDefault == "n" && cur.Get() != ""))
+			isNotNo := lowerInput != "no" && (lowerDefault != "no" || (lowerDefault == "no" && lowerInput != ""))
+			if isNotN && isNotNo {
 				prompt = render(p.Templates.invalid, p.Label)
 			}
 			err = ErrAbort
