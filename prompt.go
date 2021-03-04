@@ -141,7 +141,7 @@ func (p *Prompt) Run() (string, error) {
 	// we're taking over the cursor,  so stop showing it.
 	rl.Write([]byte(hideCursor))
 	//Changing to support the new libs
-	sb := screenbuf.New(rl)
+	sb := screenbuf.New(rl, false)
 
 	validFn := func(x string) error {
 		return nil
